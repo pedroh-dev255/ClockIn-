@@ -1,0 +1,5 @@
+export const config = {
+  api: 'https://api.example.com',
+  app_token: 'your_app_token_here',
+  port: 8080,
+};

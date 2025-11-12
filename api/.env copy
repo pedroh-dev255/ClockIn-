@@ -1,0 +1,15 @@
+# GENERAL
+PORT=3000
+APP_TOKEN="seu_token_aqui"
+JWT_SECRET="seu_segredo_jwt_aqui"
+
+#MYSQL
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=
+DB_NAME=clockin
+
+#EMAIL
+EMAIL_HOST=smtp.gmail.com
+EMAIL_MAIL=seu_email@gmail.com
+EMAIL_PASS="sua senha de app"
