@@ -40,13 +40,13 @@ async function register(req, res) {
     }
     try {
         const result = await registerService(name, email, password);
-        res.status(201).json({ 
+        return res.status(201).json({ 
             success: true,
             data: result
         });
     } catch (error) {
-        
-        res.status(400).json({ 
+        logError('Errao ao tentar cadastrar', 'cadastro', null, { email: email, erro: error.message }, req.ip)
+        return res.status(400).json({ 
             success: false,
             message: error.message
         });
@@ -54,8 +54,20 @@ async function register(req, res) {
     
 }
 
+async function reset_pass(req, res) {
+    const { email } = req.body;
+
+    try {
+        
+    } catch (error) {
+
+        return res
+    }
+}
+
 
 module.exports = {
     login,
-    register
+    register,
+    reset_pass
 };

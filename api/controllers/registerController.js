@@ -1,5 +1,5 @@
 const { getRegistrosService, setRegistroService } = require('../services/registerService');
-const { logError } = require('../services/logService');
+const { logError, logInfo } = require('../services/logService');
 
 
 async function getRegistros(req, res) {
@@ -55,7 +55,7 @@ async function setRegistro(req, res) {
         });
     }
 
-    if(!data || !coluna || !value){
+    if(!data || !coluna){
         return res.status(400).json({ 
             success: false,
             message: 'Preencha todos os campos!' 
@@ -63,8 +63,8 @@ async function setRegistro(req, res) {
     }
 
     try {
-        const result =  await setRegistro(userId, data, coluna, value);
-
+        const result =  await setRegistroService(userId, data, coluna, value);
+        
         return res.status(200).json({ 
             success: true,
             result

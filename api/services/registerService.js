@@ -2,26 +2,50 @@ const pool = require('../configs/db');
 const { configsService } = require('./configService');
 const dayjs = require('dayjs');
 
-async function setRegistroService(userId, data, colum, value) {
-    try {
-        //verifica se o registro existe
-        const [registro] = await pool.query("SELECT * FROM registros WHERE data_registro = ? AND id = ?", [data, userId]);
+async function setRegistroService(userId, data, coluna, value) {
 
-        if(!registro){
-            throw new Error("Dia não cadastrado");
-        }
-    } catch (error) {
-        throw new Error(error.message);
+    if(value == "") value = null;
+  try {
+    // 1️⃣ Verifica se o registro do dia já existe para o usuário
+    const [rows] = await pool.promise().query(
+      "SELECT id FROM registros WHERE user_id = ? AND data_registro = ?",
+      [userId, data]
+    );
+
+    // 2️⃣ Se não existir, cria um novo registro
+    if (rows.length === 0) {
+      const insertQuery = `
+        INSERT INTO registros (user_id, data_registro, ${coluna})
+        VALUES (?, ?, ?)
+      `;
+      await pool.promise().query(insertQuery, [userId, data, value]);
+      return { message: 'Registro criado com sucesso' };
     }
+
+    // 3️⃣ Se já existir, apenas atualiza a coluna indicada
+    const updateQuery = `
+      UPDATE registros 
+      SET ${coluna} = ? 
+      WHERE user_id = ? AND data_registro = ?
+    `;
+    await pool.promise().query(updateQuery, [value, userId, data]);
+
+    return { message: 'Registro atualizado com sucesso' };
+
+  } catch (error) {
+    console.error('Erro no setRegistroService:', error);
+    throw new Error('Erro ao salvar o registro');
+  }
 }
 
 async function getRegistrosService(userId, periodo) {
     try {
         const fechamentoConfig = await configsService(userId, 'fechamento_mes');
-        const diaFechamento = Number(fechamentoConfig) || 25;
-
+        const max50 = Number(await configsService(userId, 'maximo50')) || 0;
         const toleranciaPonto = Number(await configsService(userId, 'toleranciaPonto')) || 5;
         const toleranciaGeral = Number(await configsService(userId, 'toleranciaGeral')) || 10;
+
+        const diaFechamento = Number(fechamentoConfig) || 25;
 
         let inicio, fim;
 
@@ -73,18 +97,64 @@ async function getRegistrosService(userId, periodo) {
             const registro = rows.find(r => r.data_registro.toISOString().split('T')[0] === dia);
             const diaSemana = getDiaSemana(new Date(dia));
             const nominal = nominals.find(n => n.dia_semana === diaSemana);
-
-            const horasNominaisMin = nominal ? calcularHorasEmMinutos(nominal) : 0;
             const dataAtual = dayjs(dia);
 
+            let horasNominaisMin = nominal ? calcularHorasEmMinutos(nominal) : 0;
             let horasTrabalhadasMin = 0;
             let saldoMin = 0;
+            let saldo100 = 0;
+
+            const mode = registro?.mode || null;
+
+            if (mode && nominal) {
+                const horasManha = calcularHorasEmMinutos({ hora1: nominal.hora1, hora2: nominal.hora2 });
+                const horasTarde = calcularHorasEmMinutos({ hora3: nominal.hora3, hora4: nominal.hora4 });
+
+                switch (mode) {
+                    case 'ferias':
+                    case 'feriado':
+                    case 'atestado':
+                    case 'bonificado':
+                        horasNominaisMin = 0; // zera o dia inteiro
+                        break;
+
+                    case 'feriado manha':
+                    case 'atestado manha':
+                        horasNominaisMin -= horasManha;
+                        break;
+
+                    case 'feriado tarde':
+                    case 'atestado tarde':
+                        horasNominaisMin -= horasTarde;
+                        break;
+
+                    case 'folga':
+                        // não afeta cálculos, mas não zera
+                        break;
+                }
+            }
 
             if (registro && nominal) {
                 horasTrabalhadasMin = calcularHorasComToleranciaEmMinutos(registro, nominal, toleranciaPonto);
                 saldoMin = horasTrabalhadasMin - horasNominaisMin;
 
-                if (Math.abs(saldoMin) <= toleranciaGeral) saldoMin = 0;
+                if (Math.abs(saldoMin) < toleranciaGeral) saldoMin = 0;
+
+                // 🔹 Cálculo de saldo 100%
+                const isDiaUtil = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'].includes(diaSemana);
+
+                if (isDiaUtil && saldoMin > 0) {
+                    // Tudo acima de max50 é 100%
+                    if (saldoMin > max50) {
+                        saldo100 = saldoMin - max50;
+                        saldoMin = max50; // o restante fica como 50%
+                    }
+                } else if (!isDiaUtil && saldoMin > 0) {
+                    // Fim de semana → tudo é 100%
+                    saldo100 = saldoMin;
+                    saldoMin = 0;
+                }
+
             } else {
                 if (dataAtual.isBefore(hoje, 'day') || dataAtual.isSame(hoje, 'day')) {
                     saldoMin = -horasNominaisMin;
@@ -93,7 +163,7 @@ async function getRegistrosService(userId, periodo) {
                 }
             }
 
-            saldoPeriodo += saldoMin;
+            saldoPeriodo += (saldoMin + saldo100);
 
             return {
                 data: dia,
@@ -102,7 +172,7 @@ async function getRegistrosService(userId, periodo) {
                 horas_nominais: horasNominaisMin,
                 horas_trabalhadas: horasTrabalhadasMin,
                 saldo_minutos: saldoMin,
-                saldo_100: 0,
+                saldo_100: saldo100,
                 saldo_periodo: saldoPeriodo
             };
         });
@@ -119,6 +189,7 @@ async function getRegistrosService(userId, periodo) {
         throw new Error(error.message);
     }
 }
+
 
 /** 🔹 Calcula total de horas nominais (em minutos) */
 function calcularHorasEmMinutos(row) {

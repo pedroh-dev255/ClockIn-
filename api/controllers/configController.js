@@ -1,4 +1,4 @@
-const { configsService } = require('../services/configService');
+const { configsService, updateConfigs } = require('../services/configService');
 const { logError } = require('../services/logService');
 
 async function getConfig(req, res) {
@@ -25,13 +25,35 @@ async function getConfig(req, res) {
         });
     }
 
-    try {
-        const configValue = await configsService(userId, config);
 
-        return res.status(200).json({ 
-            success: true,
-            data: configValue 
-        });
+
+    try {
+        if(config == "update"){
+            const {conf, nominal} = req.body;
+
+            if(!conf || !nominal){
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'Configuraçao nao especificada' 
+                });
+            }
+
+            const result = await updateConfigs(userId, conf, nominal);
+
+            if (!result) throw new Error('Erro atualizar configurações');
+
+            return res.status(200).json({
+                success: true,
+                message: 'Configurações Atualizadas'
+            })
+        }else{
+            const configValue = await configsService(userId, config);
+
+            return res.status(200).json({ 
+                success: true,
+                data: configValue 
+            });
+        }
     } catch (error) {
 
         await logError('Falha ao carregar configuraçao', 'config', userId, { config, erro: error.message }, req.ip);
