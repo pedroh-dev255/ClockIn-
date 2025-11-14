@@ -70,6 +70,20 @@ create table registros(
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE saldos(
+    id int not NULL AUTO_INCREMENT,
+    user_id int not null,
+    periodo date not null,
+    saldo_sys int not null,
+    saldo_100 int not null,
+    s100_pg BOOLEAN DEFAULT false,
+    ajuste int,
+    obs text,
+    PRIMARY KEY (id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+
+);
+
 CREATE TABLE logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NULL,

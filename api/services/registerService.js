@@ -1,5 +1,6 @@
 const pool = require('../configs/db');
 const { configsService } = require('./configService');
+const { getSaldo } = require("./saldoService");
 const dayjs = require('dayjs');
 
 async function setRegistroService(userId, data, coluna, value) {
@@ -73,10 +74,19 @@ async function getRegistrosService(userId, periodo) {
                 fim.setDate(diaFechamento);
             }
         }
+        
 
         const formatDate = (date) => date.toISOString().split('T')[0];
         const dt_inicio = formatDate(inicio);
         const dt_fim = formatDate(fim);
+
+        const fimAnterior = new Date(fim);
+        fimAnterior.setMonth(fimAnterior.getMonth() - 1);
+
+        const periodoAnterior = formatDate(fimAnterior);
+        const saldoAnterior = (await getSaldo(userId, periodoAnterior));
+
+        //console.log(periodoAnterior);
 
         const diasPeriodo = generateDateRange(inicio, fim);
         const hoje = dayjs();
@@ -91,7 +101,7 @@ async function getRegistrosService(userId, periodo) {
             [userId]
         );
 
-        let saldoPeriodo = 0;
+        let saldoPeriodo = saldoAnterior || 0;
 
         const registrosPorDia = diasPeriodo.map((dia) => {
             const registro = rows.find(r => r.data_registro.toISOString().split('T')[0] === dia);
@@ -181,7 +191,8 @@ async function getRegistrosService(userId, periodo) {
             dt_inicio,
             dt_fim,
             num_dias_mes: diasPeriodo.length,
-            saldo_anterior: null,
+            saldo_anterior: saldoAnterior,
+            saldoPeriodo,
             registros: registrosPorDia
         };
 

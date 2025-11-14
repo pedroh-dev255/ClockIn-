@@ -4,14 +4,15 @@ const path = require('path');
 const cors = require('cors');
 
 //rotas
-const userRoutes = require('./routes/user');
+const userRoutes     = require('./routes/user');
 const registerRoutes = require('./routes/registers');
-const configRoutes = require('./routes/configs');
+const configRoutes   = require('./routes/configs');
+const saldoRoutes    = require('./routes/saldos');
 
 //middleware
 const tokenMiddleware = require('./middlewares/tokenMiddleware');
-const logMiddleware = require('./middlewares/logMiddleware');
-const authMiddleware = require('./middlewares/authMiddleware');
+const logMiddleware   = require('./middlewares/logMiddleware');
+const authMiddleware  = require('./middlewares/authMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,10 +31,11 @@ app.post('/api/validate-token', tokenMiddleware, authMiddleware, (req, res) => {
     res.json({ success: true, message: 'Token valido' });
 });
 
-app.use('/api/users', tokenMiddleware, logMiddleware, userRoutes);
-app.use('/api/configs', tokenMiddleware, logMiddleware, configRoutes);
+app.use('/api/users',     tokenMiddleware, logMiddleware, userRoutes);
+app.use('/api/configs',   tokenMiddleware, logMiddleware, configRoutes);
 app.use('/api/registers', tokenMiddleware, logMiddleware, registerRoutes);
-app.use('/api/configs', tokenMiddleware, logMiddleware, configRoutes);
+app.use('/api/configs',   tokenMiddleware, logMiddleware, configRoutes);
+app.use('/api/saldos',    tokenMiddleware, logMiddleware, saldoRoutes);
 
 
 app.listen(PORT, () => {
