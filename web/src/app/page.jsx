@@ -11,6 +11,7 @@ export default function Home() {
   const router = useRouter();
   const [mes, setMes] = useState('');
   const [ano, setAno] = useState('');
+  const [loading, setLoading] = useState(true)
   const [tpGeral, setTpGeral] = useState('');
   const [diasT, setDiasT] = useState('');
   const [saldoAnt, setSaldoAnt] = useState('');
@@ -66,9 +67,11 @@ export default function Home() {
       setAno(anoRef);
 
       await fetchFeriados();
-
+      setLoading(false);
     } catch (error) {
       console.error("Erro ao buscar período:", error);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -88,6 +91,8 @@ export default function Home() {
     } catch (error) {
       console.error("Erro ao buscar feriados:", error);
       toast.error("Não foi possível carregar os feriados");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -134,6 +139,8 @@ export default function Home() {
     } catch (err) {
       toast.error('Erro ao buscar dados');
       console.error('Erro ao buscar dados:', err);
+    } finally {
+      setLoading(false);
     }
 
   }
@@ -152,6 +159,8 @@ export default function Home() {
     } catch (error) {
       console.error("Erro ao aplicar filtro:", error);
       toast.error("Erro ao aplicar filtro");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -244,6 +253,37 @@ export default function Home() {
       }
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar/>
+        <div className="flex justify-center items-center h-screen">
+          <svg
+            className="animate-spin h-10 w-10 text-blue-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0
+               c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar/>
@@ -309,7 +349,7 @@ export default function Home() {
             Registros de Ponto — {mes}/{ano}
           </h2>
           <p className="text-gray-700 mb-6">
-            Dias trabalhados: <b>{diasT}</b> — Saldo anterior: <b>{minutosParaHorasSaldo(saldoAnt)}</b>
+            Dias trabalhados: <b>{diasT}</b> — Saldo anterior: <b>{minutosParaHorasSaldo(saldoAnt) || "Não definido"}</b> <a style={{fontSize: "10px", textAlign: "center", color: "#2e31ffff"}} href="/saldos">(Ajuste de saldo aqui)</a>
           </p>
 
           {/* Tabela */}
