@@ -3,19 +3,21 @@
 import Image from "next/image";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Navbar from './components/navbar'
 import toast from "react-hot-toast";
-import { get } from "http";
-
+import { isAbsolute } from "path";
 
 export default function Home() {
   const router = useRouter();
   const [mes, setMes] = useState('');
   const [ano, setAno] = useState('');
+  const [tpGeral, setTpGeral] = useState('');
   const [diasT, setDiasT] = useState('');
   const [saldoAnt, setSaldoAnt] = useState('');
   const [registros, setRegistros] = useState([]);
   const [editCell, setEditCell] = useState({ data: null, field: null });
   const [editValue, setEditValue] = useState('');
+  const [feriados, setFeriados] = useState([]);
 
 
   async function fetchPeriodo() {
@@ -25,12 +27,17 @@ export default function Home() {
       const fechamentoConfig = await response.json();
       const diaFechamento = Number(fechamentoConfig.data);
 
+      const res = await fetch(`/api/configs/toleranciaGeral`);
+      const toleranciaGeral = await res.json();
+
+      setTpGeral(Number(toleranciaGeral.data));
+
       if(isNaN(diaFechamento) || diaFechamento < 1 || diaFechamento > 28) {
         toast.error("Dia de fechamento inválido nas configurações");
         throw new Error("Dia de fechamento inválido");
       }
 
-      console.log("Dia de fechamento:", diaFechamento);
+      //console.log("Dia de fechamento:", diaFechamento);
 
       // 🔹 2. Calcula o período conforme backend
       const hoje = new Date();
@@ -58,26 +65,40 @@ export default function Home() {
       setMes(mesRef);
       setAno(anoRef);
 
+      await fetchFeriados();
+
     } catch (error) {
       console.error("Erro ao buscar período:", error);
+    }
+  }
+
+  async function fetchFeriados(ano) {
+    try {
+
+      const ano_atual = ano || (new Date().getFullYear())
+
+      //console.log("feriados ano: ", ano_atual);
+      const response = await fetch(`https://brasilapi.com.br/api/feriados/v1/${ano_atual}`);
+      const data = await response.json();
+
+      if (!Array.isArray(data)) throw new Error("Erro ao buscar feriados");
+
+      // Filtro simples: só feriados nacionais (Palmas não tem endpoint específico)
+      setFeriados(data.map(f => f.date));
+    } catch (error) {
+      console.error("Erro ao buscar feriados:", error);
+      toast.error("Não foi possível carregar os feriados");
     }
   }
 
   useEffect(() => {
     fetchPeriodo();
     fetchData();
+    
   }, []);
 
 
-  async function handleLogout() {
-    try {
-      // Chama a rota API de logout
-      await fetch('/api/logout', { method: 'POST' });
-      router.replace('/login'); // Redireciona pro login
-    } catch (err) {
-      console.error('Erro ao fazer logout:', err);
-    }
-  }
+
 
   async function fetchData(periodo) {
     try {
@@ -93,6 +114,10 @@ export default function Home() {
 
       if (!res.ok) {
         throw new Error('Erro ao buscar dados');
+      }
+
+      if(periodo){
+        await fetchFeriados(periodo.ano);
       }
 
       const data = await res.json();
@@ -113,8 +138,6 @@ export default function Home() {
 
   }
 
-
-
   async function handleFilterSubmit(e) {
     e.preventDefault();
 
@@ -133,18 +156,25 @@ export default function Home() {
   }
 
   function minutosParaHorasSaldo(minutos) {
-    if(minutos == 0){
-      return ""
-    }
-    const horas = Math.floor(minutos / 60);
-    const mins = Math.abs(minutos % 60);
-    return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    // Para o campo "saldo" você quer string vazia quando for 0
+    if (!minutos) return "";
+
+    const sinal = minutos < 0 ? "-" : "";
+    const total = Math.abs(Math.trunc(minutos)); // garante inteiro
+    const horas = Math.floor(total / 60);
+    const mins = total % 60;
+
+    return `${sinal}${String(horas).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
   }
 
   function minutosParaHoras(minutos) {
-    const horas = Math.floor(minutos / 60);
-    const mins = Math.abs(minutos % 60);
-    return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    // Se quiser sempre mostrar algo (ex: "00:00" quando 0)
+    const sinal = minutos < 0 ? "-" : "";
+    const total = Math.abs(Math.trunc(minutos));
+    const horas = Math.floor(total / 60);
+    const mins = total % 60;
+
+    return `${sinal}${String(horas).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
   }
 
   function handleDoubleClick(data, field, valorAtual) {
@@ -168,7 +198,7 @@ export default function Home() {
 
         if (!res.ok) throw new Error('Erro ao atualizar registro');
 
-        console.log(res);
+        //console.log(res);
 
         toast.success('Registro atualizado!');
         setEditCell({ data: null, field: null });
@@ -180,31 +210,43 @@ export default function Home() {
     }
   }
 
-  async function handleAltMode(data, modo) {
+  function isDiaFeriado(data) {
+    if (!feriados || feriados.length === 0) return false;
+    const dataFormatada = new Date(data).toISOString().split('T')[0];
 
-    //console.log('dados recebido: ', data, " modo: ", modo);
-    toast.success('Registro atualizado!');
+    return feriados.includes(dataFormatada);
+  }
+
+  async function handleAltMode(data, mode) {
+
+    try {
+        const body = { data, coluna: "mode", value: mode };
+
+        //console.log(body);
+
+        const res = await fetch('/api/registros/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          credentials: 'include',
+        });
+
+        if (!res.ok) throw new Error('Erro ao atualizar registro');
+
+        //console.log(res);
+
+        toast.success('Registro atualizado!');
+        setEditCell({ data: null, field: null });
+        await fetchData({ mes, ano }); // Atualiza tabela
+      } catch (err) {
+        toast.error(err.message);
+        console.error(err);
+      }
   }
 
   return (
     <div className="min-h-screen flex flex-col">
-      <nav className="bg-gray shadow-md mb-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Image src="/logo.png" alt="ClockIn Logo" width={40} height={40} />
-            </div>
-            <div className="flex items-center">
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar/>
 
       {/* Conteúdo principal */}
       <main className="flex-grow bg-gray-100 py-6 px-6 overflow-auto">
@@ -270,238 +312,199 @@ export default function Home() {
             Dias trabalhados: <b>{diasT}</b> — Saldo anterior: <b>{minutosParaHorasSaldo(saldoAnt)}</b>
           </p>
 
-          {/* 🔹 Tabela Responsiva */}
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full text-sm text-center border-collapse">
-              <thead className="bg-gray-100 sticky top-0 z-10">
+          {/* Tabela */}
+          <div className="overflow-x-auto rounded-2xl shadow-lg border border-gray-200">
+            <table className="min-w-full text-sm text-center border-separate border-spacing-0">
+              <thead className="bg-gradient-to-r from-blue-600 to-blue-500 text-white sticky top-0 shadow-md">
                 <tr>
-                  <th className="border px-3 py-2">Data</th>
-                  <th className="border px-3 py-2">Dia</th>
-                  <th className="border px-3 py-2">H1</th>
-                  <th className="border px-3 py-2">H2</th>
-                  <th className="border px-3 py-2">H3</th>
-                  <th className="border px-3 py-2">H4</th>
-                  <th className="border px-3 py-2">H5</th>
-                  <th className="border px-3 py-2">H6</th>
-                  <th className="border px-3 py-2">Trabalhadas</th>
-                  <th className="border px-3 py-2">Nominais</th>
-                  <th className="border px-3 py-2">Faltante</th>
-                  <th className="border px-3 py-2">50%</th>
-                  <th className="border px-3 py-2">100%</th>
-                  <th className="border px-3 py-2">Saldo</th>
-                  <th className="border px-3 py-2">Obs</th>
-                  <th className="border px-3 py-2">Modo</th>
+                  {[
+                    "Data", "Dia", "H1", "H2", "H3", "H4", "H5", "H6",
+                    "Trabalhadas", "Nominais", "Faltante", "50%", "100%",
+                    "Saldo", "Obs", "Modo"
+                  ].map((header) => (
+                    <th
+                      key={header}
+                      className="px-4 py-3 font-semibold border-r border-blue-400 last:border-r-0"
+                    >
+                      {header}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody>
-                {registros.length > 0 ? (
-                  registros.map((item, i) => {
-                    const r = item.registros || {};
-                    return (
-                      <>
-                        <tr
-                          key={i}
-                          style={
-                            item.data === new Date().toISOString().split('T')[0]
-                              ? { backgroundColor: '#cce5ff' } // azul claro para o dia atual
-                              : item.diaSemana === 'Domingo'
-                              ? { backgroundColor: '#f3bebeff' } // vermelho claro para domingo
-                              : {}
-                          }
-                          className={
-                            item.data === new Date().toISOString().split('T')[0]
-                              ? "hover:bg-blue-100"
-                              : item.diaSemana === 'Domingo'
-                              ? "hover:bg-red-50"
-                              : "hover:bg-gray-50"
-                          }
-                        >
-                          <td className="border px-4 py-2 text-center">
-                            {item.data.split("-").reverse().join("/")}
-                          </td>
-                          <td className="border px-4 py-2 text-center">
-                            {item.diaSemana}
-                          </td>
-                          <td
-                            className="border px-4 py-2 text-center cursor-pointer"
-                            onDoubleClick={() => handleDoubleClick(item.data, 'hora1', r.hora1)}
-                          >
-                            {editCell.data === item.data && editCell.field === 'hora1' ? (
-                              <input
-                                type="time"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onKeyDown={(e) => handleEditKeyDown(e, item.data, 'hora1')}
-                                onBlur={() => handleEditKeyDown({ key: 'Enter' }, item.data, 'hora1')}
-                                className="border rounded px-2 py-1 w-20 text-center"
-                                autoFocus
-                              />
-                            ) : (
-                              r.hora1 || ''
-                            )}
-                          </td>
 
-                          <td
-                            className="border px-4 py-2 text-center cursor-pointer"
-                            onDoubleClick={() => handleDoubleClick(item.data, 'hora2', r.hora2)}
-                          >
-                            {editCell.data === item.data && editCell.field === 'hora2' ? (
-                              <input
-                                type="time"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onKeyDown={(e) => handleEditKeyDown(e, item.data, 'hora2')}
-                                onBlur={() => handleEditKeyDown({ key: 'Enter' }, item.data, 'hora2')}
-                                className="border rounded px-2 py-1 w-20 text-center"
-                                autoFocus
-                              />
-                            ) : (
-                              r.hora2 || ''
-                            )}
-                          </td>
+              <tbody className="bg-white">
+                {registros.length > 0 ? (() => {
+                  // 🔹 Calcula totais uma única vez
+                  const totais = registros.reduce(
+                    (acc, item) => {
+                      acc.horas_trabalhadas += item.horas_trabalhadas || 0;
+                      acc.horas_nominais += item.horas_nominais || 0;
+                      acc.saldo_negativo += item.saldo_minutos < 0 ? item.saldo_minutos : 0;
+                      acc.saldo_50 += item.saldo_minutos > 0 ? item.saldo_minutos : 0;
+                      acc.saldo_100 += item.saldo_100 || 0;
+                      acc.saldo_total = item.saldo_periodo || 0;
+                      return acc;
+                    },
+                    {
+                      horas_trabalhadas: 0,
+                      horas_nominais: 0,
+                      saldo_negativo: 0,
+                      saldo_50: 0,
+                      saldo_100: 0,
+                      saldo_total: 0,
+                    }
+                  );
 
-                          <td
-                            className="border px-4 py-2 text-center cursor-pointer"
-                            onDoubleClick={() => handleDoubleClick(item.data, 'hora3', r.hora3)}
-                          >
-                            {editCell.data === item.data && editCell.field === 'hora3' ? (
-                              <input
-                                type="time"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onKeyDown={(e) => handleEditKeyDown(e, item.data, 'hora3')}
-                                onBlur={() => handleEditKeyDown({ key: 'Enter' }, item.data, 'hora3')}
-                                className="border rounded px-2 py-1 w-20 text-center"
-                                autoFocus
-                              />
-                            ) : (
-                              r.hora3 || ''
-                            )}
-                          </td>
+                  // 🔹 Renderiza linhas de registros
+                  return (
+                    <>
+                      {registros.map((item, i) => {
+                        const r = item.registros || {};
+                        const isToday = item.data === new Date().toISOString().split('T')[0];
+                        const isSunday = item.diaSemana === 'Domingo';
 
-                          <td
-                            className="border px-4 py-2 text-center cursor-pointer"
-                            onDoubleClick={() => handleDoubleClick(item.data, 'hora4', r.hora4)}
+                        return (
+                          <tr
+                            key={item.data || i}
+                            className={`
+                              transition-all duration-200
+                              ${isToday ? 'bg-blue-50 hover:bg-blue-100' :
+                                isSunday ? 'bg-red-50 hover:bg-red-100' :
+                                i % 2 === 0 ? 'bg-gray-50 hover:bg-gray-100' : 'hover:bg-gray-50'}
+                            `}
                           >
-                            {editCell.data === item.data && editCell.field === 'hora4' ? (
-                              <input
-                                type="time"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onKeyDown={(e) => handleEditKeyDown(e, item.data, 'hora4')}
-                                onBlur={() => handleEditKeyDown({ key: 'Enter' }, item.data, 'hora4')}
-                                className="border rounded px-2 py-1 w-20 text-center"
-                                autoFocus
-                              />
-                            ) : (
-                              r.hora4 || ''
-                            )}
-                          </td>
+                            <td className="px-0 py-3 font-medium text-gray-800 border-b border-gray-200 border-r">
+                              {item.data.split("-").reverse().join("/")}{isDiaFeriado(item.data) && <a href="/feriados"><br /><b className="px-4 py-2 text-red-900" >(Feriado)</b></a>}
+                            </td>
+                            <td className="px-0 py-3 text-gray-700 border-b border-gray-200 border-r">
+                              {item.diaSemana}
+                            </td>
 
-                          <td
-                            className="border px-4 py-2 text-center cursor-pointer"
-                            onDoubleClick={() => handleDoubleClick(item.data, 'hora5', r.hora5)}
-                          >
-                            {editCell.data === item.data && editCell.field === 'hora5' ? (
-                              <input
-                                type="time"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onKeyDown={(e) => handleEditKeyDown(e, item.data, 'hora5')}
-                                onBlur={() => handleEditKeyDown({ key: 'Enter' }, item.data, 'hora5')}
-                                className="border rounded px-2 py-1 w-20 text-center"
-                                autoFocus
-                              />
-                            ) : (
-                              r.hora5 || ''
-                            )}
-                          </td>
+                            {/* Campos editáveis */}
+                            {["hora1", "hora2", "hora3", "hora4", "hora5", "hora6"].map((field) => (
+                              <td
+                                key={field}
+                                className="px-3 py-2 cursor-pointer text-gray-700 border-b border-gray-200 border-r"
+                                onDoubleClick={() => handleDoubleClick(item.data, field, r[field])}
+                              >
+                                {editCell.data === item.data && editCell.field === field ? (
+                                  <input
+                                    type="time"
+                                    value={editValue}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    onKeyDown={(e) => handleEditKeyDown(e, item.data, field)}
+                                    onBlur={() => handleEditKeyDown({ key: 'Enter' }, item.data, field)}
+                                    className="border border-gray-300 rounded-md px-2 py-1 w-20 text-center outline-none focus:ring-2 focus:ring-blue-400"
+                                    autoFocus
+                                  />
+                                ) : (
+                                  r[field] || ''
+                                )}
+                              </td>
+                            ))}
 
-                          <td
-                            className="border px-4 py-2 text-center cursor-pointer"
-                            onDoubleClick={() => handleDoubleClick(item.data, 'hora6', r.hora6)}
-                          >
-                            {editCell.data === item.data && editCell.field === 'hora6' ? (
-                              <input
-                                type="time"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onKeyDown={(e) => handleEditKeyDown(e, item.data, 'hora6')}
-                                onBlur={() => handleEditKeyDown({ key: 'Enter' }, item.data, 'hora6')}
-                                className="border rounded px-2 py-1 w-20 text-center"
-                                autoFocus
-                              />
-                            ) : (
-                              r.hora6 || ''
-                            )}
-                          </td>
-                          <td className="border px-4 py-2 text-center">
-                            {minutosParaHoras(item.horas_trabalhadas)}
-                          </td>
-                          <td className="border px-4 py-2 text-center">
-                            {minutosParaHoras(item.horas_nominais)}
-                          </td>
-                          {/* faltantes */}
-                          <td className="border px-4 py-2 text-center">
-                            {minutosParaHorasSaldo(item.saldo_minutos < 0 ? item.saldo_minutos : 0)}
-                          </td>
-                          {/* 50% */}
-                          <td className="border px-4 py-2 text-center">
-                            {minutosParaHorasSaldo(item.saldo_minutos > 0 ? item.saldo_minutos : 0)}
-                          </td>
-                          {/* 100% */}
-                          <td className="border px-4 py-2 text-center">
-                            {minutosParaHorasSaldo(item.saldo_100)}
-                          </td>
+                            {/* Colunas calculadas */}
+                            <td className="px-1 py-2 text-gray-800 font-medium border-b border-gray-200 border-r">
+                              {minutosParaHoras(item.horas_trabalhadas)}
+                              {Math.abs(Number(item.horas_trabalhadas) - Number(item.horas_nominais)) < Number(tpGeral) &&
+                                Number(item.horas_trabalhadas) !== Number(item.horas_nominais) && (
+                                  <span 
+                                    title={`Tolerância de ${tpGeral} minutos para mais ou para menos`}
+                                    className="cursor-help text-red-500 font-bold ml-1"
+                                  >
+                                    *
+                                  </span>
+                              )}
+                            </td>
+                            <td className="px-1 py-2 text-gray-800 font-medium border-b border-gray-200 border-r">
+                              {minutosParaHoras(item.horas_nominais)}
+                            </td>
+                            <td className="px-1 py-2 text-red-600 font-semibold border-b border-gray-200 border-r">
+                              {minutosParaHorasSaldo(item.saldo_minutos < 0 ? item.saldo_minutos : 0)}
+                            </td>
+                            <td className="px-1 py-2 text-green-600 font-semibold border-b border-gray-200 border-r">
+                              {minutosParaHorasSaldo(item.saldo_minutos > 0 ? item.saldo_minutos : 0)}
+                            </td>
+                            <td className="px-1 py-2 text-yellow-600 font-semibold border-b border-gray-200 border-r">
+                              {minutosParaHorasSaldo(item.saldo_100)}
+                            </td>
+                            <td className="px-1 py-2 text-blue-700 font-semibold border-b border-gray-200 border-r">
+                              {minutosParaHoras(item.saldo_periodo)}
+                            </td>
 
-                          <td className="border px-4 py-2 text-center">
-                            {minutosParaHorasSaldo(item.saldo_periodo)}
-                          </td>
-                          <td
-                            className="border px-4 py-2 text-center cursor-pointer"
-                            onDoubleClick={() => handleDoubleClick(item.data, 'obs', r.obs)}
-                          >
-                            {editCell.data === item.data && editCell.field === 'obs' ? (
-                              <input
-                                type="text"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onKeyDown={(e) => handleEditKeyDown(e, item.data, 'obs')}
-                                onBlur={() => handleEditKeyDown({ key: 'Enter' }, item.data, 'obs')}
-                                className="border rounded px-2 py-1 w-full"
-                                autoFocus
-                              />
-                            ) : (
-                              r.obs || ''
-                            )}
-                          </td>
-
-                          <td className="border px-4 py-2 text-center">
-                            <select
-                              onChange={(e) => handleAltMode(item.data, e.target.value)}
-                              value={r.mode || ""}
-                              className="border rounded-md px-2 py-1"
+                            {/* Observação */}
+                            <td
+                              className="px-4 py-2 cursor-pointer text-gray-700 border-b border-gray-200 border-r"
+                              onDoubleClick={() => handleDoubleClick(item.data, 'obs', r.obs)}
                             >
-                              <option value="">-</option>
-                              <option value="ferias">Ferias</option>
-                              <option value="folga">Folga</option>
-                              <option value="feriado">feriado</option>
-                              <option value="feriado manha">Feriado pela Manha</option>
-                              <option value="feriado tarde">Feriado pela Tarde</option>
-                              <option value="bonificado">Folga Bonificada</option>
-                              <option value="atestado">Atestado</option>
-                              <option value="atestado manha">Atestado pela Manha</option>
-                              <option value="atestado tarde">Atestado pela Tarde</option>
-                            </select>
-                          </td>
+                              {editCell.data === item.data && editCell.field === 'obs' ? (
+                                <input
+                                  type="text"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onKeyDown={(e) => handleEditKeyDown(e, item.data, 'obs')}
+                                  onBlur={() => handleEditKeyDown({ key: 'Enter' }, item.data, 'obs')}
+                                  className="border border-gray-300 rounded-md px-2 py-1 w-full text-center outline-none focus:ring-2 focus:ring-blue-400"
+                                  autoFocus
+                                />
+                              ) : (
+                                r.obs || ''
+                              )}
+                            </td>
 
-                        </tr>
-                      </>
-                    );
-                  })
-                ) : (
+                            {/* Modo */}
+                            <td className="px-4 py-2 border-b border-gray-200">
+                              <select
+                                onChange={(e) => handleAltMode(item.data, e.target.value)}
+                                value={r.mode || ""}
+                                className="border border-gray-300 rounded-md px-2 py-1 text-gray-700 outline-none focus:ring-2 focus:ring-blue-400"
+                              >
+                                <option value="">-</option>
+                                <option value="ferias">Férias</option>
+                                <option value="folga">Folga</option>
+                                <option value="feriado">Feriado</option>
+                                <option value="feriado manha">Feriado Manhã</option>
+                                <option value="feriado tarde">Feriado Tarde</option>
+                                <option value="bonificado">Bonificada</option>
+                                <option value="atestado">Atestado</option>
+                                <option value="atestado manha">Atestado Manhã</option>
+                                <option value="atestado tarde">Atestado Tarde</option>
+                              </select>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {/* 🔹 Linha de totais */}
+                      <tr className="bg-blue-50 font-semibold text-gray-800 border-t border-gray-300 shadow-inner">
+                        <td className="px-1 py-3 text-center border-r border-gray-200" colSpan="8">
+                          Totais
+                        </td>
+                        <td className="px-1 py-3 border-r border-gray-200">
+                          {minutosParaHorasSaldo(totais.horas_trabalhadas)}
+                        </td>
+                        <td className="px-1 py-3 border-r border-gray-200">
+                          {minutosParaHorasSaldo(totais.horas_nominais)}
+                        </td>
+                        <td className="px-1 py-3 text-red-600 font-semibold border-r border-gray-200">
+                          {minutosParaHorasSaldo(totais.saldo_negativo)}
+                        </td>
+                        <td className="px-1 py-3 text-green-600 font-semibold border-r border-gray-200">
+                          {minutosParaHorasSaldo(totais.saldo_50)}
+                        </td>
+                        <td className="px-1 py-3 text-yellow-600 font-semibold border-r border-gray-200">
+                          {minutosParaHorasSaldo(totais.saldo_100)}
+                        </td>
+                        <td className="px-1 py-3 text-blue-700 font-semibold border-r border-gray-200">
+                          {minutosParaHorasSaldo(totais.saldo_total)}
+                        </td>
+                        <td colSpan="2" className="border-r border-gray-200"></td>
+                      </tr>
+                    </>
+                  );
+                })() : (
                   <tr>
-                    <td colSpan="7" className="text-center py-4 text-gray-500">
+                    <td colSpan="16" className="text-center py-6 text-gray-500">
                       Nenhum registro encontrado
                     </td>
                   </tr>
@@ -509,6 +512,8 @@ export default function Home() {
               </tbody>
             </table>
           </div>
+
+
         </div>
       </main>
     </div>

@@ -10,7 +10,7 @@ export async function GET(request) {
 
     // chamar sua API real ou validação local aqui
     // por exemplo:
-    const res = await fetch(`${process.env.API_URL}/api/configs/fechamento_mes`, {
+    const res = await fetch(`${process.env.API_URL}/api/configs/*`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -23,7 +23,7 @@ export async function GET(request) {
     if (!res.ok) return NextResponse.json({ success: false }, { status: 401 });
 
     const json = await res.json();
-    //console.log('Resposta da API de fechamento do mês: ', json);
+    //console.log('Resposta da API de configurações: ', json);
     return NextResponse.json({data: json.data }, { status: 200 });
   } catch (err) {
     console.error('Erro ao buscar dados: ', err);

@@ -10,7 +10,7 @@ export async function GET(request) {
 
     // chamar sua API real ou validação local aqui
     // por exemplo:
-    const res = await fetch(`${process.env.API_URL}/api/configs/fechamento_mes`, {
+    const res = await fetch(`${process.env.API_URL}/api/configs/toleranciaGeral`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

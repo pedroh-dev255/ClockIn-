@@ -8,6 +8,8 @@ export default function ResetPassPage() {
     //receber token da url para validar a redefinição de senha
     const router = useRouter();
 
+    
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
             <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-6">
