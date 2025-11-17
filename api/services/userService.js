@@ -1,4 +1,6 @@
 const pool = require('../configs/db');
+const sendMail = require("../configs/mailer");
+const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
@@ -165,7 +167,219 @@ async function deleteLoginToken(userId, token) {
     }
 }
 
+
+async function resetPasswordService(email) {
+    let connection;
+
+    try {
+        const [users] = await pool.promise().query(
+            'SELECT id, name, email FROM users WHERE email = ?',
+            [email]
+        );
+
+        if (users.length === 0) {
+            throw new Error("E-mail não cadastrado!");
+        }
+
+        const user = users[0];
+
+        // Gerar token
+        const resetToken = uuidv4().split("-")[0];
+        const expiresAt = new Date(Date.now() + 3600000); // 1 hora
+
+        connection = await pool.promise().getConnection();
+        await connection.beginTransaction();
+
+        // Gravar token no banco
+        await connection.query(
+            `INSERT INTO reset_password (user_id, resetToken, expires_at) VALUES (?, ?, ?)`,
+            [user.id, resetToken, expiresAt]
+        );
+
+        // Corpo do e-mail
+        const title = 'Redefinição de Senha';
+        const body = `
+            <div style="
+                width: 100%;
+                background: #f3f3f3;
+                padding: 40px 0;
+                font-family: Arial, sans-serif;
+            ">
+
+                <div style="
+                    max-width: 500px;
+                    background: #fff;
+                    margin: auto;
+                    border-radius: 14px;
+                    padding: 30px 25px;
+                    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+                ">
+                
+                <h1 style="
+                    text-align: center;
+                    color: #6A3EED;
+                    margin: 0 0 5px 0;
+                    font-size: 28px;
+                ">
+                    ClockIn!
+                </h1>
+
+                <h2 style="
+                    text-align: center;
+                    color: #333;
+                    font-size: 18px;
+                    font-weight: 600;
+                    margin-top: 0;
+                ">
+                    Redefinição de Senha
+                </h2>
+
+                <p style="
+                    color: #555;
+                    font-size: 15px;
+                    line-height: 1.6;
+                ">
+                    Olá <strong>${user.name}</strong>,
+                </p>
+
+                <p style="
+                    color: #555;
+                    font-size: 15px;
+                    line-height: 1.6;
+                ">
+                    Recebemos uma solicitação para redefinir sua senha.  
+                    Para continuar, use o botão abaixo.  
+                    <br><br>
+                    Este link expira em <strong>1 hora</strong>.
+                </p>
+
+                <!-- BOTÃO -->
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${process.env.FRONTEND_URL}/redefinir-senha/confirmacao/?token=${resetToken}"
+                    style="
+                        background: #6A3EED;
+                        color: #fff;
+                        padding: 14px 22px;
+                        text-decoration: none;
+                        font-weight: bold;
+                        border-radius: 10px;
+                        display: inline-block;
+                        font-size: 16px;
+                        letter-spacing: 0.5px;
+                        box-shadow: 0 3px 10px rgba(106,62,237,0.3);
+                        transition: 0.2s ease;
+                    ">
+                        Redefinir Senha
+                    </a>
+                </div>
+
+                <p style="
+                    color: #555;
+                    text-align: center;
+                    font-size: 14px;
+                    margin-top: 20px;
+                ">
+                    Caso o botão não funcione, copie e cole o link abaixo no navegador:
+                </p>
+
+                <!-- LINK RAW -->
+                <p style="
+                    word-break: break-all;
+                    text-align: center;
+                    font-size: 12px;
+                    color: #6A3EED;
+                ">
+                    ${process.env.FRONTEND_URL}/redefinir-senha/confirmacao/?token=${resetToken}
+                </p>
+
+                <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
+
+                <p style="
+                    font-size: 13px;
+                    color: #888;
+                    text-align: center;
+                ">
+                    Se você não solicitou essa alteração, apenas ignore este e-mail.<br>
+                    <strong>Equipe ClockIn!</strong>
+                </p>
+
+                </div>
+
+            </div>
+            `;
+
+
+        const emailEnviado = await sendMail(email, title, body);
+
+        if (!emailEnviado) {
+            throw new Error("Falha ao enviar e-mail");
+        }
+
+        await connection.commit();
+
+        return true;
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        throw new Error(error.message);
+
+    } finally {
+        if (connection) connection.release();
+    }
+}
+
+
+async function confirmResetService(token, password) {
+   let connection;
+
+    try {
+        connection = await pool.promise().getConnection();
+        await connection.beginTransaction();
+
+        const [rows] = await connection.query(
+            "SELECT * FROM reset_password WHERE resetToken = ?",
+            [token]
+        );
+
+        if (rows.length === 0) {
+            throw new Error("Token inválido ou não encontrado");
+        }
+
+        const resetData = rows[0];
+
+        const agora = new Date();
+        if (agora > resetData.expires_at) {
+            throw new Error("Token expirado, solicite uma nova redefinição");
+        }
+
+        const hashed = await bcrypt.hash(password, 10);
+
+        await connection.query(
+            "UPDATE users SET password = ? WHERE id = ?",
+            [hashed, resetData.user_id]
+        );
+
+        await connection.query(
+            "DELETE FROM reset_password WHERE resetToken = ?",
+            [token]
+        );
+
+        await connection.commit();
+
+        return true;
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        throw new Error(error.message);
+    } finally {
+        if (connection) connection.release();
+    }
+}
+
+
 module.exports = {
     loginService,
-    registerService
+    registerService,
+    resetPasswordService,
+    confirmResetService
 };

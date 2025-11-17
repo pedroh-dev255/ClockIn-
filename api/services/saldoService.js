@@ -129,9 +129,50 @@ async function updateSaldoService(userId, periodo, saldo, obs) {
     }
 }
 
+async function updateSaldoPgService(userId, periodo, value) {
+    try {
+
+        const [dia, mes, ano] = periodo.split("/");
+        const periodoSQL = `${ano}-${mes}-${dia}`;
+
+        // 1️⃣ Verificar se já existe registro
+        const [existe] = await pool.promise().query(
+            "SELECT * FROM saldos WHERE user_id = ? AND periodo = ?",
+            [userId, periodoSQL]
+        );
+
+        if (existe.length > 0) {
+
+            // 2️⃣ Atualizar registro existente
+            await pool.promise().query(
+                `UPDATE saldos 
+                SET s100_pg = ?
+                WHERE id = ?`,
+                [value, existe[0].id]
+            );
+
+            return true
+        }
+
+        // 3️⃣ Criar novo registro se não existir
+        await pool.promise().query(
+            `INSERT INTO saldos (user_id, periodo, saldo_sys, saldo_100, s100_pg, ajuste, obs)
+             VALUES (?, ?, 0, 0, ?, 0, null)`,
+            [userId, periodoSQL, value]
+        );
+
+        return true
+        
+    } catch (error) {
+        throw new Error(error.message);
+    }
+    
+}
+
 module.exports = {
     salvarSaldoMensal,
     getSaldo,
     getSaldosService,
-    updateSaldoService
+    updateSaldoService,
+    updateSaldoPgService
 }

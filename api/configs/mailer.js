@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export async function sendMail(to, subject, html) {
+async function sendMail(to, subject, html) {
   try {
     await transporter.sendMail({
       from: `"ClockIn" <${process.env.EMAIL_MAIL}>`,
@@ -29,3 +29,6 @@ export async function sendMail(to, subject, html) {
     return false;
   }
 }
+
+
+module.exports = sendMail;

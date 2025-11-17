@@ -11,9 +11,10 @@ create table users(
 );
 
 create table reset_password(
-    id int not null,
+    id int not null AUTO_INCREMENT,
     user_id int not null,
     resetToken varchar(8) not null,
+    expires_at DATETIME NOT NULL,
     create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     Foreign Key (user_id) REFERENCES users(id) ON DELETE CASCADE
