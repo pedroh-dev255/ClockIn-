@@ -23,10 +23,38 @@ export default function RegistroPage() {
         setErro('');
 
         if (senha !== confirmarSenha) {
-            setErro('As senhas não coincidem');
             toast.error('As senhas não coincidem');
             setLoading(false);
             return;
+        }
+
+        if(senha.length <=7 ){
+            toast.error('As senhas menor que 8 caracteres');
+            setLoading(false);
+            return;
+        }
+
+        
+        try {
+
+            const res = await fetch('/api/registro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    nome,
+                    email,
+                    senha
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro ao cadastrar usuario');
+            
+            router.push('/');
+            return toast.success('Usuario cadastrado com sucesso!');
+        } catch (error) {
+            return toast.error(error.message);
         }
 
         

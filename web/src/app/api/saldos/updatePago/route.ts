@@ -8,27 +8,24 @@ export async function POST(request) {
         if (!token){
             return NextResponse.json({ success: false }, { status: 401 });
         }
-        const periodo = body.periodo;
-        const saldo = body.saldo;
-        const obs = body.obs
-
-        const res = await fetch(`${process.env.API_URL}/api/saldos/updateSaldo`, {
+        const {periodo, value} = body;
+        const res = await fetch(`${process.env.API_URL}/api/saldos/updateSaldoPg`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
                 'appToken': process.env.APP_TOKEN,
             },
-            body: JSON.stringify({ periodo, saldo, obs }),
+            body: JSON.stringify({ periodo, value }),
             cache: 'no-store',
         });
 
-        if(!res.ok) return NextResponse.json({ success: false }, { status: 400 });
- 
+        if(!res.ok) return NextResponse.json({ success: false }, { status: 401 });
+
         return NextResponse.json({ success: true }, { status: 200 });
 
     }catch(error){
-        console.error('Erro ao atualizar dados: ', error);
+        console.error('Erro ao buscar dados: ', error);
          return NextResponse.json({ success: false }, { status: 500 });
     }
 }

@@ -4,7 +4,7 @@ export async function POST(request) {
     const body = await request.json();
     try {
         const token = request.cookies.get('token')?.value;
-        console.log(body.periodo)
+        //console.log(body.periodo)
         if (!token){
             return NextResponse.json({ success: false }, { status: 401 });
         }

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+
 
 export default function ForgotPassPage() {
     const router = useRouter();
@@ -11,6 +13,27 @@ export default function ForgotPassPage() {
     async function handleSubmit(event) {
         event.preventDefault();
         setLoading(true);
+
+        try {
+
+            const res = await fetch('/api/resetpass', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    email
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || 'Erro ao enviar token de redefinição');
+            
+            router.push('/login');
+            return toast.success('Token de redefinição enviado por email!');
+        } catch (error) {
+            return toast.error(error.message);
+        }
     }
 
 

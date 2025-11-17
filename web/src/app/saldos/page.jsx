@@ -132,8 +132,8 @@ export default function SaldosPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          periodo: item.periodo,
-          pago: novoValor
+          periodo: new Date(item.periodo).toLocaleDateString('pt-BR'),
+          value: novoValor
         })
       });
 
