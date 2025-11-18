@@ -10,6 +10,14 @@ create table users(
     primary key (id)
 );
 
+create table admins(
+    id int AUTO_INCREMENT not null,
+    user_id int not null,
+    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(id),
+    Foreign Key (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 create table reset_password(
     id int not null AUTO_INCREMENT,
     user_id int not null,

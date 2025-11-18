@@ -27,15 +27,22 @@ async function loginService(email, password) {
             throw new Error('Email ou senha invalidos');
         }
 
+        const [admin] = await pool.promise().query('select * from admins where user_id = ?', [user.id])
+        let role = 'user';
+        
+        if (admin.length > 0) {
+            role = 'admin';
+        }
+
         const token = jwt.sign(
-            { id: user.id, email: user.email },
+            { id: user.id, email: user.email, role },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
         await cadLoginToken(token, user.id);
 
-        return { id: user.id, email: user.email, token };
+        return { id: user.id, email: user.email, role, token };
 
     } catch (error) {
         throw new Error(error.message);
@@ -65,8 +72,11 @@ async function registerService(name, email, password) {
 
         const userId = result.insertId;
 
+        let role = 'user';
+        
+
         const token = jwt.sign(
-            { id: userId, email },
+            { id: userId, email, role },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -114,7 +124,7 @@ async function registerService(name, email, password) {
 
         await connection.commit();
 
-        return { id: userId, name, email, token };
+        return { id: userId, name, email, role, token };
 
     } catch (error) {
         
@@ -376,10 +386,14 @@ async function confirmResetService(token, password) {
     }
 }
 
+async function adminService(req, res) {
+    
+}
 
 module.exports = {
     loginService,
     registerService,
     resetPasswordService,
-    confirmResetService
+    confirmResetService,
+    adminService
 };
