@@ -39,8 +39,8 @@ async function setRegistroService(userId, data, coluna, value) {
   }
 }
 
-async function getRegistrosService(as, periodo) {
-    const userId = 4;
+async function getRegistrosService(userId, periodo) {
+
     try {
         const fechamentoConfig = await configsService(userId, 'fechamento_mes');
         const max50 = Number(await configsService(userId, 'maximo50')) || 0;
