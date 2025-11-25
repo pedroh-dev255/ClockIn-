@@ -30,7 +30,7 @@ app.get('/', (req, res) => {
 });
 
 app.post('/api/validate-token', tokenMiddleware, authMiddleware, (req, res) => {
-    res.json({ success: true, message: 'Token valido' });
+    return res.status(200).json({ success: true, message: 'Token valido' });
 });
 
 app.get('/api/validate-token-Admin', tokenMiddleware, authMiddleware, (req, res) => {
@@ -42,13 +42,13 @@ app.get('/api/validate-token-Admin', tokenMiddleware, authMiddleware, (req, res)
     const role = decoded.role;
 
     if(!role || role !== 'admin') {
-        res.status(400).json({ 
+        return res.status(400).json({ 
             success: false,
             message: 'ID do usuario nao encontrado no token' 
         });
     }
 
-    res.json({ success: true, role, message: 'Token valido, user admmin' });
+    return res.status(200).json({ success: true, role, message: 'Token valido, user admmin' });
 });
 
 app.use('/api/users',     tokenMiddleware, logMiddleware, userRoutes);

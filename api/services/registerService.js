@@ -39,7 +39,8 @@ async function setRegistroService(userId, data, coluna, value) {
   }
 }
 
-async function getRegistrosService(userId, periodo) {
+async function getRegistrosService(as, periodo) {
+    const userId = 4;
     try {
         const fechamentoConfig = await configsService(userId, 'fechamento_mes');
         const max50 = Number(await configsService(userId, 'maximo50')) || 0;
@@ -100,6 +101,10 @@ async function getRegistrosService(userId, periodo) {
             `SELECT * FROM nominals WHERE user_id = ?`,
             [userId]
         );
+
+        if(nominals.length === 0 ) {
+            throw new Error('Horas nominais não cadastradas');
+        }
 
         let saldoPeriodo = saldoAnterior || 0;
 
@@ -219,28 +224,38 @@ function calcularHorasEmMinutos(row) {
 /** 🔹 Calcula total de horas trabalhadas aplicando tolerância (em minutos) */
 function calcularHorasComToleranciaEmMinutos(registro, nominal, toleranciaMin) {
     let total = 0;
-    const pares = [['hora1', 'hora2'], ['hora3', 'hora4'], ['hora5', 'hora6']];
+
+    const pares = [
+        ['hora1', 'hora2'],
+        ['hora3', 'hora4'],
+        ['hora5', 'hora6']
+    ];
 
     pares.forEach(([inicio, fim]) => {
         if (registro[inicio] && registro[fim] && nominal[inicio] && nominal[fim]) {
             let entradaReal = dayjs(`2000-01-01 ${registro[inicio]}`);
-            let saidaReal = dayjs(`2000-01-01 ${registro[fim]}`);
+            let saidaReal   = dayjs(`2000-01-01 ${registro[fim]}`);
             const entradaNominal = dayjs(`2000-01-01 ${nominal[inicio]}`);
-            const saidaNominal = dayjs(`2000-01-01 ${nominal[fim]}`);
+            const saidaNominal   = dayjs(`2000-01-01 ${nominal[fim]}`);
 
-            // 🔹 Ajuste de tolerância de ENTRADA
-            const diffEntrada = entradaReal.diff(entradaNominal, 'minute');
-            if (Math.abs(diffEntrada) <= toleranciaMin) {
-                entradaReal = entradaNominal; // dentro da tolerância, considera pontual
+            // 🔹 Aplica tolerância SOMENTE na entrada da manhã (hora1)
+            if (inicio === "hora1") {
+                const diffEntrada = entradaReal.diff(entradaNominal, "minute");
+                if (Math.abs(diffEntrada) <= toleranciaMin) {
+                    entradaReal = entradaNominal;
+                }
             }
 
-            // 🔹 Ajuste de tolerância de SAÍDA
-            const diffSaida = saidaReal.diff(saidaNominal, 'minute');
-            if (Math.abs(diffSaida) <= toleranciaMin) {
-                saidaReal = saidaNominal; // dentro da tolerância, considera pontual
+            // 🔹 Aplica tolerância SOMENTE na saída da tarde (hora4)
+            if (fim === "hora4") {
+                const diffSaida = saidaReal.diff(saidaNominal, "minute");
+                if (Math.abs(diffSaida) <= toleranciaMin) {
+                    saidaReal = saidaNominal;
+                }
             }
 
-            total += saidaReal.diff(entradaReal, 'minute');
+            // 🔹 Para hora3/hora5/hora6 → sem tolerância nominal (somente cálculo normal)
+            total += saidaReal.diff(entradaReal, "minute");
         }
     });
 
