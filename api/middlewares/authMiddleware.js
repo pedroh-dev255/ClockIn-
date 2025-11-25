@@ -6,8 +6,11 @@ dotenv.config();
 
 async function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];
+    const forwarded = req.headers["x-forwarded-for"];
+    const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+
     if (!authHeader) {
-        await logError('Token de autenticacao nao fornecido', 'auth', null, { method: req.method, url: req.url }, req.ip);
+        await logError('Token de autenticacao nao fornecido', 'auth', null, { method: req.method, url: req.url }, ip);
         return res.status(401).json({ 
             success: false,
             message: 'Token de autenticacao obrigatorio' 
@@ -20,7 +23,7 @@ async function authMiddleware(req, res, next) {
             [token]
         );
         if (rows.length === 0 || jwt.verify(token, process.env.JWT_SECRET) == null) {
-            await logError('Tentativa de acesso com token invalido', 'auth', null, { method: req.method, url: req.originalUrl }, req.ip);
+            await logError('Tentativa de acesso com token invalido', 'auth', null, { method: req.method, url: req.originalUrl }, ip);
             return res.status(403).json({ 
                 success: false,
                 message: 'Token de autenticacao invalido' 
@@ -31,7 +34,7 @@ async function authMiddleware(req, res, next) {
 
         next();
     } catch (error) {
-        await logError('Erro ao validar token de autenticacao', 'auth', null, { method: req.method, url: req.originalUrl, erro: error.message }, req.ip);
+        await logError('Erro ao validar token de autenticacao', 'auth', null, { method: req.method, url: req.originalUrl, erro: error.message }, ip);
         return res.status(500).json({ 
             success: false,
             message: 'Erro no servidor' 

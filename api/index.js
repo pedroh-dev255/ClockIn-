@@ -21,6 +21,7 @@ const PORT = process.env.PORT || 3000;
 
 dotenv.config();
 
+app.set("trust proxy", true);
 app.use(cors({origin: '*'}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

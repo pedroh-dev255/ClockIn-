@@ -5,9 +5,11 @@ dotenv.config();
 
 async function tokenMiddleware(req, res, next) {
     const token = req.headers['apptoken'];
+    const forwarded = req.headers["x-forwarded-for"];
+    const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
 
     if (!token) {
-        logError('Token de app nao fornecido', 'auth', null, { method: req.method, url: req.originalUrl }, req.ip);
+        logError('Token de app nao fornecido', 'auth', null, { method: req.method, url: req.originalUrl }, ip);
         return res.status(401).json({ 
             success: false,
             message: 'Token obrigatorio' 
@@ -15,7 +17,7 @@ async function tokenMiddleware(req, res, next) {
     }
 
     if (token !== process.env.APP_TOKEN) {
-        logError('Token de app invalido', 'auth', null, { method: req.method, url: req.originalUrl }, req.ip);
+        logError('Token de app invalido', 'auth', null, { method: req.method, url: req.originalUrl }, ip);
         return res.status(403).json({ 
             success: false,
             message: 'Token invalido' 

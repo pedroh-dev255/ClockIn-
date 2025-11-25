@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const pool = require('../configs/db');
+const dotenv = require('dotenv');
+dotenv.config();
+
+
+const TIMEZONE = process.env.TZ || 'America/Sao_Paulo';
 
 // Caminho dos logs locais
 const logDir = path.join(__dirname, '../logs');
@@ -8,7 +13,18 @@ if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir);
 }
 
-const logFile = path.join(logDir, `${new Date().toISOString().split('T')[0]}.log`);
+function getLocalDate() {
+    const parts = new Date()
+        .toLocaleDateString('pt-BR', { timeZone: TIMEZONE })
+        .split('/');
+    return `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD
+}
+
+const logFile = path.join(logDir, `${getLocalDate()}.log`);
+
+function getLocalTimestamp() {
+    return new Date().toLocaleString('pt-BR', { timeZone: TIMEZONE });
+}
 
 /**
  * Cria um log tanto no arquivo quanto no banco de dados.
@@ -23,7 +39,8 @@ const logFile = path.join(logDir, `${new Date().toISOString().split('T')[0]}.log
 async function log({ level = 'info', message, user_id = null, context = null, data = null, ip = null }) {
     try {
         // 🧩 Monta a linha do log (para o arquivo)
-        const timestamp = new Date().toISOString();
+        const timestamp = getLocalTimestamp();
+
         const line = `[${timestamp}] [${level.toUpperCase()}] ${context ? `[${context}] ` : ''}${message}${user_id ? ` (user:${user_id})` : ''}${ip ? ` (ip:${ip})` : ''}\n`;
 
         // 🔹 Salva no arquivo

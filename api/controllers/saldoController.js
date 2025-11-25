@@ -51,7 +51,9 @@ async function fecharMes(req, res) {
 
         
     } catch (error) {
-        await logError('Falha ao salvar saldo', 'saldos', userId, { body: req.body,  erro: error.message }, req.ip);
+        const forwarded = req.headers["x-forwarded-for"];
+        const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+        await logError('Falha ao salvar saldo', 'saldos', userId, { body: req.body,  erro: error.message }, ip);
         return res.status(500).json({
             success: false,
             message: error.message
@@ -80,7 +82,9 @@ async function getSaldo(req, res) {
 
         
     } catch (error) {
-        await logError('Falha ao carregar saldo', 'saldos', userId, { erro: error.message }, req.ip);
+        const forwarded = req.headers["x-forwarded-for"];
+        const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+        await logError('Falha ao carregar saldo', 'saldos', userId, { erro: error.message }, ip);
         return res.status(500).json({
             success: false,
             message: error.message
@@ -124,8 +128,9 @@ async function getSaldos(req, res) {
         });
 
     } catch (error) {
-        //(error.message)
-        logError('Falha ao carregar saldos', 'saldos', userId, { erro: error.message }, req.ip);
+        const forwarded = req.headers["x-forwarded-for"];
+        const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+        logError('Falha ao carregar saldos', 'saldos', userId, { erro: error.message }, ip);
         return res.status(500).json({
             success: false,
             message: error.message
@@ -168,7 +173,9 @@ async function updateSaldo(req, res) {
         });
 
     } catch (error) {
-        logError('Falha ao atualizar o saldo', 'saldos', userId, { body: req.body, erro: error.message }, req.ip);
+        const forwarded = req.headers["x-forwarded-for"];
+        const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+        logError('Falha ao atualizar o saldo', 'saldos', userId, { body: req.body, erro: error.message }, ip);
         return res.status(500).json({
             success: false,
             message: error.message
@@ -214,9 +221,9 @@ async function updateSaldoPg(req, res) {
         })
         
     } catch (error) {
-
-        //console.log(error.message)
-        logError('Falha ao atualizar o pagamento de 100%', 'saldos', userId, { body: req.body, erro: error.message }, req.ip);
+        const forwarded = req.headers["x-forwarded-for"];
+        const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+        logError('Falha ao atualizar o pagamento de 100%', 'saldos', userId, { body: req.body, erro: error.message }, ip);
         return res.status(500).json({
             success: false,
             message: error.message

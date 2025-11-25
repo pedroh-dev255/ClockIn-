@@ -28,7 +28,10 @@ async function getRegistros(req, res) {
         });
     } catch (error) {
 
-        await logError('Falha ao carregar registros', 'registros', userId, { erro: error.message }, req.ip);
+        const forwarded = req.headers["x-forwarded-for"];
+        const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+
+        await logError('Falha ao carregar registros', 'registros', userId, { erro: error.message }, ip);
 
         return res.status(500).json({ 
             success: false,
@@ -70,7 +73,9 @@ async function setRegistro(req, res) {
             result
         });
     } catch(error){
-        await logError('Falha ao cadastrar registro', 'registros', userId, { erro: error.message }, req.ip);
+        const forwarded = req.headers["x-forwarded-for"];
+        const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+        await logError('Falha ao cadastrar registro', 'registros', userId, { erro: error.message }, ip);
 
         return res.status(500).json({ 
             success: false,
