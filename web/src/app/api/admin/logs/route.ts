@@ -1,0 +1,32 @@
+// app/api/admin/logs/route.js
+import { NextResponse } from 'next/server';
+
+export async function GET(req) {
+  try {
+    const token = req.cookies.get('token')?.value;
+
+    if (!token){
+      return NextResponse.json({ success: false }, { status: 401 });
+    }
+
+    const searchParams = req.nextUrl.searchParams;
+    const queryString = searchParams.toString(); // ex: "page=2&limit=20&type=error"
+
+    // 2️⃣ REPASSAR PARA O BACKEND
+    const url = `${process.env.API_URL}/api/logs${queryString ? `?${queryString}` : ''}`;
+
+    const dados = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'appToken': process.env.APP_TOKEN,
+        'Authorization': `Bearer ${token}`,
+      },
+    }).then(res => res.json());
+
+    return NextResponse.json(dados);
+  } catch (err) {
+    console.error('Erro no GET /api/logs:', err);
+    return NextResponse.json({ error: 'Erro ao buscar registros' }, { status: 500 });
+  }
+}
+

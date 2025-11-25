@@ -47,64 +47,64 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-6">
-        <h1 className="text-2xl font-semibold text-center mb-6" style={{color: "#6A3EED"}}>ClockIn!</h1>
-        <h2 className='text-2x2 font-semibold text-center mb-6'>Acesso ao Sistema</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">E-mail</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-600 mb-1">Senha</label>
-            <input
-                type={mostrarSenha ? 'text' : 'password'}
-                minLength={6}
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-6">
+          <h1 className="text-2xl font-semibold text-center mb-6" style={{color: "#6A3EED"}}>ClockIn!</h1>
+          <h2 className='text-2x2 font-semibold text-center mb-6'>Acesso ao Sistema</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">E-mail</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
                 required
-                value={senha}
-                onChange={e => setSenha(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-600 mb-1">Senha</label>
+              <input
+                  type={mostrarSenha ? 'text' : 'password'}
+                  minLength={6}
+                  required
+                  value={senha}
+                  onChange={e => setSenha(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                  type="button"
+                  onClick={() => setMostrarSenha(!mostrarSenha)}
+                  className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
+              >
+                  {mostrarSenha ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
+              </button>
+            </div>
+
+            {erro && <p className="text-red-500 text-sm text-center">{erro}</p>}
+
             <button
-                type="button"
-                onClick={() => setMostrarSenha(!mostrarSenha)}
-                className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
             >
-                {mostrarSenha ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
+              {loading ? 'Entrando...' : 'Entrar'}
             </button>
-          </div>
+          </form>
 
-          {erro && <p className="text-red-500 text-sm text-center">{erro}</p>}
+          <p className="text-center text-sm text-gray-500 mt-4">
+            Esqueceu a senha?{' '}
+            <a href="/redefinir-senha" className="text-blue-600 hover:underline">
+              Redefinir
+            </a>
+          </p>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            {loading ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-500 mt-4">
-          Esqueceu a senha?{' '}
-          <a href="/redefinir-senha" className="text-blue-600 hover:underline">
-            Redefinir
-          </a>
-        </p>
-
-        <p className="text-center text-sm text-gray-500 mt-4">
-          <a href="/registro" className="text-blue-600 hover:underline">
-            Não tem uma conta? Cadastre-se aqui.
-          </a>
-        </p>
-      </div>
+          <p className="text-center text-sm text-gray-500 mt-4">
+            <a href="/registro" className="text-blue-600 hover:underline">
+              Não tem uma conta? Cadastre-se aqui.
+            </a>
+          </p>
+        </div>
     </div>
   );
 }
