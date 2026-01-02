@@ -126,6 +126,10 @@ async function getRegistrosService(userId, periodo) {
                 const horasManha = calcularHorasEmMinutos({ hora1: nominal.hora1, hora2: nominal.hora2 });
                 const horasTarde = calcularHorasEmMinutos({ hora3: nominal.hora3, hora4: nominal.hora4 });
 
+                const horasManhaFeriado = calcularHorasEmMinutos({ hora1: '08:00', hora2: '12:00' });
+                const horasTardeFeriado = calcularHorasEmMinutos({ hora3: '14:00', hora4: '18:00' });
+
+
                 switch (mode) {
                     case 'ferias':
                     case 'feriado':
@@ -135,11 +139,16 @@ async function getRegistrosService(userId, periodo) {
                         break;
 
                     case 'feriado manha':
+                        horasNominaisMin -= horasManhaFeriado;
+                        break;
+
                     case 'atestado manha':
                         horasNominaisMin -= horasManha;
                         break;
 
                     case 'feriado tarde':
+                        horasNominaisMin -= horasTardeFeriado;
+                        break;
                     case 'atestado tarde':
                         horasNominaisMin -= horasTarde;
                         break;
