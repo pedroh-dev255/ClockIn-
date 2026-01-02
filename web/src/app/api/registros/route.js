@@ -1,5 +1,6 @@
 // app/api/registros/route.js
 import { NextResponse } from 'next/server';
+import { proxy } from "../../_proxy";
 
 export async function POST(req) {
 
@@ -28,7 +29,7 @@ export async function POST(req) {
 
     //console.log('Período recebido:', periodoFinal);
 
-    const dados = await fetch(`${process.env.API_URL}/api/registers`, {
+    const dados = await proxy(req, `${process.env.API_URL}/api/registers`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

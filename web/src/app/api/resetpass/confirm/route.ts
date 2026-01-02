@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { proxy } from "../../_proxy";
 
 export async function POST(request) {
 
@@ -12,7 +13,7 @@ export async function POST(request) {
 
     var {password, token} = body
 
-    const res = await fetch(`${process.env.API_URL}/api/users/confirmReset`, {
+    const res = await proxy(request, `${process.env.API_URL}/api/users/confirmReset`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

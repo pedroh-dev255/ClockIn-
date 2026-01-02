@@ -1,5 +1,6 @@
 // app/api/validate-token/route.js (App Router)
 import { NextResponse } from 'next/server';
+import { proxy } from "../../_proxy";
 
 export async function GET(request) {
 
@@ -16,7 +17,7 @@ export async function GET(request) {
 
     // chamar sua API real ou validação local aqui
     // por exemplo:
-    const res = await fetch(`${process.env.API_URL}/api/validate-token`, {
+    const res = await proxy(request, `${process.env.API_URL}/api/validate-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

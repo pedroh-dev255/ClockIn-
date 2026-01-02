@@ -1,18 +1,15 @@
 // app/api/login/route.js
 import { NextResponse } from 'next/server';
+import { proxy } from "../_proxy";
 
 export async function POST(request) {
-
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0] ||
-    request.headers.get("x-real-ip") || "unknown";
     
   try {
     //console.log('Recebendo requisição de login');
     const body = await request.json();
     const { nome, email, senha } = body;
 
-    const res = await fetch(`${process.env.API_URL}/api/users/register`, {
+    const res = await proxy(request, `${process.env.API_URL}/api/users/register`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

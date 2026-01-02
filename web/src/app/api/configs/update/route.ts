@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { proxy } from "../../_proxy";
 
 export async function POST(request) {
   const ip =
@@ -13,7 +14,7 @@ export async function POST(request) {
 
     const { conf, nominal } = await request.json(); // ✅ aqui é o parse correto
 
-    const res = await fetch(`${process.env.API_URL}/api/configs/update`, {
+    const res = await proxy(request, `${process.env.API_URL}/api/configs/update`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

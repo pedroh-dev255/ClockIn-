@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { proxy } from "../_proxy";
 
 export async function GET(req) {
 
@@ -13,7 +14,7 @@ export async function GET(req) {
       return NextResponse.json({ success: false }, { status: 401 });
     }
 
-    const res = await fetch(`${process.env.API_URL}/api/validate-token-Admin`, {
+    const res = await proxy(req, `${process.env.API_URL}/api/validate-token-Admin`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

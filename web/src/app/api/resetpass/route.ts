@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { proxy } from "../_proxy";
 
 export async function POST(request) {
 
@@ -11,7 +12,7 @@ export async function POST(request) {
 
     var {email} = body
 
-    const res = await fetch(`${process.env.API_URL}/api/users/reset-password`, {
+    const res = await proxy(request, `${process.env.API_URL}/api/users/reset-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

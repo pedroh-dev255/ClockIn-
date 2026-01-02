@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { proxy } from "../_proxy";
 
 export async function GET(request) {
   const ip =
@@ -14,7 +15,7 @@ export async function GET(request) {
 
     // chamar sua API real ou validação local aqui
     // por exemplo:
-    const res = await fetch(`${process.env.API_URL}/api/configs/*`, {
+    const res = await proxy(request, `${process.env.API_URL}/api/configs/*`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

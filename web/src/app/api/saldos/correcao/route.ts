@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { proxy } from "../../_proxy";
 
 export async function POST(request) {
 
@@ -18,7 +19,7 @@ export async function POST(request) {
         const saldo = body.saldo;
         const obs = body.obs
 
-        const res = await fetch(`${process.env.API_URL}/api/saldos/updateSaldo`, {
+        const res = await proxy(request, `${process.env.API_URL}/api/saldos/updateSaldo`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

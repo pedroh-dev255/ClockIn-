@@ -1,5 +1,6 @@
 // app/api/admin/logs/route.js
 import { NextResponse } from 'next/server';
+import { proxy } from "../../_proxy";
 
 export async function GET(req) {
 
@@ -20,7 +21,7 @@ export async function GET(req) {
     // 2️⃣ REPASSAR PARA O BACKEND
     const url = `${process.env.API_URL}/api/logs${queryString ? `?${queryString}` : ''}`;
 
-    const dados = await fetch(url, {
+    const dados = await proxy(req, url, {
       method: 'GET',
       headers: {
         'appToken': process.env.APP_TOKEN,

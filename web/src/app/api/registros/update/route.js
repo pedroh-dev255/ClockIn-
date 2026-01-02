@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { proxy } from "../../_proxy";
 
 export async function POST(req) {
 
@@ -20,7 +21,7 @@ export async function POST(req) {
         return NextResponse.json({ error: 'Preencha todos os campos' }, { status: 400 });;
     }
 
-    const dados = await fetch(`${process.env.API_URL}/api/registers/cad`, {
+    const dados = await proxy(req, `${process.env.API_URL}/api/registers/cad`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
