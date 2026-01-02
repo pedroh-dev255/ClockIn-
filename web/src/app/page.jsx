@@ -326,14 +326,17 @@ export default function Home() {
                 onChange={(e) => setAno(e.target.value)}
                 className="p-2 border border-gray-300 rounded-lg"
               >
-                {Array.from({ length: new Date().getFullYear() - 2000 + 1 }, (_, i) => {
-                  const year = 2000 + i;
-                  return (
-                    <option value={year} key={year}>
-                      {year}
-                    </option>
-                  );
-                })}
+                {Array.from(
+                  { length: new Date().getFullYear() + 2 - 2000 + 1 },
+                  (_, i) => {
+                    const year = 2000 + i;
+                    return (
+                      <option value={year} key={year}>
+                        {year}
+                      </option>
+                    );
+                  }
+                )}
               </select>
             </div>
 
