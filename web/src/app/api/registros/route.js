@@ -1,6 +1,6 @@
 // app/api/registros/route.js
 import { NextResponse } from 'next/server';
-import { proxy } from "../../_proxy";
+import { proxy } from "../_proxy";
 
 export async function POST(req) {
 

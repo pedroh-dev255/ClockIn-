@@ -1,6 +1,6 @@
 // app/api/validate-token/route.js (App Router)
 import { NextResponse } from 'next/server';
-import { proxy } from "../../_proxy";
+import { proxy } from "../_proxy";
 
 export async function GET(request) {
 
