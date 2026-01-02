@@ -5,7 +5,10 @@ async function logMiddleware(req, res, next) {
         // Monta a rota completa
         const fullRoute = `${req.baseUrl}${req.path}`;
         const userId = req.user?.id || null;
-        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const ip = 
+            req.headers["x-client-ip"] ||
+            req.headers["x-forwarded-for"]?.split(",")[0] ||
+            req.socket.remoteAddress;
 
         // Loga requisições HTTP
         await logInfo(
