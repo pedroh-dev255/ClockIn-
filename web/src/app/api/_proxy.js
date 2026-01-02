@@ -1,4 +1,4 @@
-import { getClientIp } from "./lib/getClientIp";
+import { getClientIp } from "./lib/getClientIP";
 
 export async function proxy(request, url, options = {}) {
   const ip = getClientIp(request);
