@@ -6,6 +6,8 @@ export async function POST(request) {
     request.headers.get("x-forwarded-for")?.split(",")[0] ||
     request.headers.get("x-real-ip") || "unknown";
 
+  console.log('Iniciando processo de login. IP do cliente:', ip);
+
   try {
     //console.log('Recebendo requisição de login');
     const body = await request.json();
