@@ -1,12 +1,15 @@
 // app/api/login/route.js
 import { NextResponse } from 'next/server';
+import { getClientIp } from '../lib/getClientIP';
 
 export async function POST(request) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0] ||
-    request.headers.get("x-real-ip") || "unknown";
+  const ip = getClientIp(request);
 
-  console.log('Iniciando processo de login. IP do cliente:', ip);
+  console.log({
+    forwarded: request.headers.get("x-forwarded-for"),
+    real: request.headers.get("x-real-ip"),
+    ip
+  });
 
   try {
     //console.log('Recebendo requisição de login');
