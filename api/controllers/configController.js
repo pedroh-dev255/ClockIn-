@@ -55,8 +55,10 @@ async function getConfig(req, res) {
             });
         }
     } catch (error) {
-        const forwarded = req.headers["x-forwarded-for"];
-        const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+        const ip = 
+            req.headers["x-client-ip"] ||
+            req.headers["x-forwarded-for"]?.split(",")[0] ||
+            req.socket.remoteAddress;
 
         await logError('Falha ao carregar configuraçao', 'config', userId, { config, erro: error.message }, ip);
         return res.status(500).json({ 

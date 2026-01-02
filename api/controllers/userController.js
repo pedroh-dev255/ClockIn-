@@ -3,8 +3,10 @@ const { logError, logWarn, logInfo, log } = require('../services/logService');
 
 async function login(req, res) {
     const { email, password } = req.body;
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+    const ip = 
+        req.headers["x-client-ip"] ||
+        req.headers["x-forwarded-for"]?.split(",")[0] ||
+        req.socket.remoteAddress;
 
     if (!email || !password) {
         return res.status(400).json({ 
@@ -34,8 +36,10 @@ async function login(req, res) {
 
 async function register(req, res) {
     const { name, email, password } = req.body;
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+    const ip = 
+        req.headers["x-client-ip"] ||
+        req.headers["x-forwarded-for"]?.split(",")[0] ||
+        req.socket.remoteAddress;
 
     if (!name || !email || !password) {
         return res.status(400).json({ 
@@ -61,8 +65,10 @@ async function register(req, res) {
 
 async function reset_pass(req, res) {
     const { email } = req.body;
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+    const ip = 
+        req.headers["x-client-ip"] ||
+        req.headers["x-forwarded-for"]?.split(",")[0] ||
+        req.socket.remoteAddress;
     
     if(!email) throw new Error("E-mail obrigatorio");
     try {
@@ -88,8 +94,10 @@ async function reset_pass(req, res) {
 
 async function confirmReset(req, res) {
     const {token, password} = req.body;
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+    const ip = 
+            req.headers["x-client-ip"] ||
+            req.headers["x-forwarded-for"]?.split(",")[0] ||
+            req.socket.remoteAddress;
 
     if(!token || !password){
         return res.status(400).json({

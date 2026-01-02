@@ -6,8 +6,10 @@ dotenv.config();
 
 async function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+    const ip = 
+        req.headers["x-client-ip"] ||
+        req.headers["x-forwarded-for"]?.split(",")[0] ||
+        req.socket.remoteAddress;
 
     if (!authHeader) {
         await logError('Token de autenticacao nao fornecido', 'auth', null, { method: req.method, url: req.url }, ip);

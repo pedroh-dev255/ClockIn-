@@ -5,8 +5,10 @@ dotenv.config();
 
 async function tokenMiddleware(req, res, next) {
     const token = req.headers['apptoken'];
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = forwarded ? forwarded.split(",")[0] : req.socket.remoteAddress;
+    const ip = 
+        req.headers["x-client-ip"] ||
+        req.headers["x-forwarded-for"]?.split(",")[0] ||
+        req.socket.remoteAddress;
 
     if (!token) {
         logError('Token de app nao fornecido', 'auth', null, { method: req.method, url: req.originalUrl }, ip);
