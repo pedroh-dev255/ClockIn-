@@ -5,7 +5,8 @@ const dayjs = require('dayjs');
 
 async function setRegistroService(userId, data, coluna, value) {
 
-    if(value == "") value = null;
+  if(value == "") value = null;
+  
   try {
     // 1️⃣ Verifica se o registro do dia já existe para o usuário
     const [rows] = await pool.promise().query(

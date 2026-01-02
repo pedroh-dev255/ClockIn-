@@ -14,6 +14,7 @@ const logRoute       = require('./routes/logs');
 const tokenMiddleware = require('./middlewares/tokenMiddleware');
 const logMiddleware   = require('./middlewares/logMiddleware');
 const authMiddleware  = require('./middlewares/authMiddleware');
+const securityMiddleware = require('./middlewares/securityMiddleware');
 
 
 const app = express();
@@ -21,6 +22,7 @@ const PORT = process.env.PORT || 3000;
 
 dotenv.config();
 
+app.use(securityMiddleware);
 app.set("trust proxy", true);
 app.use(cors({origin: '*'}));
 app.use(express.json());

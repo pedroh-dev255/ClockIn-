@@ -2,13 +2,19 @@
 PORT=3000
 APP_TOKEN="seu_token_aqui"
 JWT_SECRET="seu_segredo_jwt_aqui"
-TZ=America/Araguaina
+TZ="America/Araguaina"
+FRONTEND_URL='https://clockin.phsolucoes.space'
 
 #MYSQL
 DB_HOST=localhost
 DB_USER=root
 DB_PASS=
 DB_NAME=clockin
+
+#REDIS
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD='your_redis_password_here'
 
 #EMAIL
 EMAIL_HOST=smtp.gmail.com

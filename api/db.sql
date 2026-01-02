@@ -1,6 +1,9 @@
--- Active: 1762862447314@@89.117.33.17@3306@clockin
+-- Active: 1750763277253@@127.0.0.1@3306@clockin
 create database clockin;
 use clockin;
+
+SET GLOBAL time_zone = 'America/Sao_Paulo';
+SET time_zone = 'America/Sao_Paulo';
 
 create table users(
     id int not null AUTO_INCREMENT,
