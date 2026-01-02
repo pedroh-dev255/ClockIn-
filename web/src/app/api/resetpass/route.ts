@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
+
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0] ||
+    request.headers.get("x-real-ip") || "unknown";
+
   try {
     const body = await request.json();
 
@@ -11,6 +16,7 @@ export async function POST(request) {
       headers: {
         'Content-Type': 'application/json',
         'appToken': process.env.APP_TOKEN,
+        "x-client-ip": ip
       },
       body: JSON.stringify({ email }),
       cache: 'no-store',

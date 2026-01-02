@@ -12,9 +12,19 @@ const LOGIN_WINDOW = 60;
 // =========================================
 
 function getClientIP(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-    return forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+  const ip =
+    req.headers["x-client-ip"] ||
+    req.headers["x-forwarded-for"]?.split(",")[0] ||
+    req.socket.remoteAddress;
+
+  // normaliza IPv6 local
+  if (ip === "::1" || ip === "127.0.0.1") {
+    return "internal";
+  }
+
+  return ip;
 }
+
 
 async function rateLimit(key, max, window) {
     const current = await redis.incr(key);

@@ -2,6 +2,12 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(req) {
+
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0] ||
+    req.headers.get("x-real-ip") || "unknown";
+
+
   try {
     const token = req.cookies.get('token')?.value;
 
@@ -28,6 +34,7 @@ export async function POST(req) {
         'Content-Type': 'application/json',
         'appToken': process.env.APP_TOKEN,
         'Authorization': `Bearer ${token}`,
+        "x-client-ip": ip
       },
       body: JSON.stringify({ periodo: periodoFinal }),
     }).then(res => res.json());

@@ -2,6 +2,10 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0] ||
+    request.headers.get("x-real-ip") || "unknown";
+
   try {
     //console.log('Recebendo requisição de login');
     const body = await request.json();
@@ -11,7 +15,8 @@ export async function POST(request) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'appToken': process.env.APP_TOKEN
+            'appToken': process.env.APP_TOKEN,
+            "x-client-ip": ip
         },
         body: JSON.stringify({ email, password: senha }),
     });

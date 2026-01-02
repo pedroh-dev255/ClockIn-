@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
+
+    const ip =
+        request.headers.get("x-forwarded-for")?.split(",")[0] ||
+        request.headers.get("x-real-ip") || "unknown";
+
     const body = await request.json();
     try {
         const token = request.cookies.get('token')?.value;
@@ -15,6 +20,7 @@ export async function POST(request) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
                 'appToken': process.env.APP_TOKEN,
+                "x-client-ip": ip
             },
             body: JSON.stringify({ periodo }),
             cache: 'no-store',
