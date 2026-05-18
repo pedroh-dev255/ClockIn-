@@ -14,7 +14,7 @@ export async function POST(request) {
         headers: {
             'Content-Type': 'application/json',
             'appToken': process.env.APP_TOKEN,
-            "x-client-ip": ip
+            //"x-client-ip": ip
         },
         body: JSON.stringify({ name: nome, email, password: senha }),
     });
